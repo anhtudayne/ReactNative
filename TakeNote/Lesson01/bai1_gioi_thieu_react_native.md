@@ -70,41 +70,55 @@ Bạn đã biết React web, nên hãy xem **cái gì giống và khác**:
 
 ```mermaid
 graph TB
-    subgraph "📱 Ứng dụng React Native"
+    subgraph "💻 MÁY TÍNH CỦA BẠN (Host Machine)"
+        A["📝 Code của bạn<br/>(Hàng trăm file .tsx, .ts, assets)"]
+        B["📦 Metro Bundler<br/>(Transpile TS/JSX → 1 file bundle.js)"]
+        A --> B
+    end
+
+    B ==>|"Gửi bundle.js qua Port 8081 / ADB"| C
+
+    subgraph "📱 THIẾT BỊ / EMULATOR (Mobile Runtime)"
         subgraph "JavaScript Thread"
-            A["📝 Code của bạn<br/>(React Components, JSX)"]
-            B["⚡ Hermes Engine<br/>(JS Runtime)"]
-            A --> B
+            C["⚡ Hermes JS Engine<br/>(Chạy file bundle.js duy nhất,<br/>tạo Virtual DOM Tree)"]
         end
         
-        subgraph "JSI - JavaScript Interface"
-            C["🔗 JSI Layer<br/>(Giao tiếp đồng bộ)"]
+        subgraph "C++ Layer (New Architecture)"
+            D["🔗 JSI (JavaScript Interface)<br/>(Cầu nối C++ gọi hàm trực tiếp)"]
+            E["📐 Yoga Engine (C++)<br/>(Tính toán Layout Flexbox x, y, w, h)"]
+            F["🎨 Fabric Renderer (C++)<br/>(Quản lý Shadow Tree & gọi OS API)"]
         end
         
-        subgraph "Native Thread"
-            D["🎨 Fabric Renderer<br/>(Tạo Native Views)"]
-            E["⚙️ TurboModules<br/>(Camera, GPS, Storage...)"]
+        subgraph "Native Thread (Android / iOS OS)"
+            G["🤖 Android Views<br/>(ViewGroup, TextView, Button...)"]
+            H["🍎 iOS UIKit Views<br/>(UIView, UILabel, UIButton...)"]
+            I["⚙️ TurboModules<br/>(Camera, GPS, SQLite...)"]
         end
-        
-        subgraph "Kết quả"
-            F["📱 iOS UIKit Views"]
-            G["📱 Android Views"]
+
+        subgraph "🖥️ Màn hình hiển thị"
+            J["📱 Pixel trên màn hình điện thoại"]
         end
-        
-        B <--> C
-        C <--> D
-        C <--> E
+
+        C <-->|"Đồng bộ trực tiếp"| D
         D --> F
-        D --> G
+        F <--> E
+        D <--> I
+        F --> G
+        F --> H
+        G --> J
+        H --> J
     end
     
     style A fill:#61dafb,color:#000
-    style B fill:#f7df1e,color:#000
-    style C fill:#ff6b6b,color:#fff
-    style D fill:#4ecdc4,color:#000
-    style E fill:#4ecdc4,color:#000
-    style F fill:#007AFF,color:#fff
-    style G fill:#3DDC84,color:#fff
+    style B fill:#e67e22,color:#fff
+    style C fill:#f7df1e,color:#000
+    style D fill:#ff6b6b,color:#fff
+    style E fill:#9b59b6,color:#fff
+    style F fill:#4ecdc4,color:#000
+    style G fill:#3DDC84,color:#000
+    style H fill:#007AFF,color:#fff
+    style I fill:#34495e,color:#fff
+    style J fill:#2ecc71,color:#fff
 ```
 
 ### 2.2 Giải thích từng thành phần
@@ -428,53 +442,62 @@ Khi bạn gõ `npx expo start` → chọn Android, đây là **toàn bộ quá t
 
 ```mermaid
 sequenceDiagram
-    participant Dev as 👨‍💻 Bạn (Developer)
-    participant Metro as 📦 Metro Bundler
-    participant Expo as 🚀 Expo CLI
-    participant Emu as 📱 Android Emulator
-    participant Hermes as ⚡ Hermes Engine
-    participant RN as 🔧 React Native
-    participant UI as 🎨 Native UI
+    autonumber
+    actor Dev as 👨‍💻 Bạn (Developer)
+    participant Metro as 📦 Metro Bundler<br/>(Trên máy tính Mac)
+    participant Emu as 📱 Android Emulator<br/>(Host App / Expo Go)
+    participant Hermes as ⚡ Hermes JS Engine<br/>(Bên trong Máy ảo)
+    participant Fabric as 🎨 JSI & Fabric (C++)<br/>(Bên trong Máy ảo)
+    participant Android as 🤖 Android OS (Native Views)<br/>(Bên trong Máy ảo)
 
-    Dev->>Expo: npx expo start
-    Expo->>Metro: Khởi chạy Metro Bundler (port 8081)
-    Metro->>Metro: Scan tất cả file JS/TS trong project
+    Dev->>Metro: Gõ `npx expo start` (Chạy Dev Server port 8081)
+    Dev->>Metro: Bấm phím 'a' (Yêu cầu chạy Android)
+    
+    rect rgb(240, 248, 255)
+    Note over Metro,Emu: 1. ĐÓNG GÓI & NẠP CODE (Bundling)
+    Metro->>Metro: Quét hàng trăm file .tsx, .ts, npm packages
+    Metro->>Metro: Transpile TS/JSX → JS thuần và gom thành 1 file bundle.js duy nhất
+    Emu->>Metro: Request bundle.js (http://localhost:8081)
+    Metro->>Emu: Gửi file bundle.js duy nhất sang máy ảo
+    end
 
-    Dev->>Expo: Nhấn 'a' (chạy Android)
-    Expo->>Emu: Cài app lên Emulator
-    Emu->>Metro: Request JS bundle (http://localhost:8081)
-    Metro->>Metro: Bundle tất cả code thành 1 file JS
-    Metro->>Emu: Gửi JS bundle
+    rect rgb(255, 250, 240)
+    Note over Emu,Hermes: 2. THỰC THI JAVASCRIPT TRÊN MÁY ẢO
+    Emu->>Hermes: Nạp file bundle.js vào Hermes Engine
+    Hermes->>Hermes: Chạy entry point (expo-router)
+    Hermes->>Hermes: Đọc cấu trúc _layout.tsx & index.tsx
+    Hermes->>Hermes: Tính toán State & tạo cây React Virtual DOM
+    end
 
-    Emu->>Hermes: Load JS bundle vào Hermes engine
-    Hermes->>RN: Chạy entry point (expo-router/entry)
-    RN->>RN: Expo Router tìm thư mục src/app/
-    RN->>RN: Load _layout.tsx → render AppTabs
-    RN->>RN: Load index.tsx → render HomeScreen
-    RN->>UI: Tạo Native Views (Android Views)
-    UI->>Emu: Hiển thị UI lên màn hình
+    rect rgb(240, 255, 240)
+    Note over Hermes,Android: 3. CẦU NỐI & TẠO NATIVE VIEWS
+    Hermes->>Fabric: Gửi Virtual DOM qua JSI (giao tiếp đồng bộ C++)
+    Fabric->>Fabric: Yoga Engine (C++) tính toán layout Flexbox (x, y, w, h)
+    Fabric->>Android: Gọi Android SDK: new FrameLayout(), new TextView()
+    Android->>Emu: GPU vẽ pixel thật của TextView lên màn hình
+    end
 
-    Note over Dev,UI: ✨ App đã chạy!
+    Note over Dev,Android: ✨ App đã chạy hoàn tất trên màn hình!
 
-    Dev->>Dev: Sửa code index.tsx
-    Dev->>Metro: File thay đổi detected (Watchman)
-    Metro->>Emu: Gửi phần code thay đổi (HMR)
-    Emu->>UI: Cập nhật UI ngay lập tức
-    Note over Dev,UI: ⚡ Hot Reload — không cần restart app!
+    rect rgb(255, 240, 245)
+    Note over Dev,Android: 4. CƠ CHẾ HOT RELOAD KHI SỬA CODE
+    Dev->>Metro: Sửa code trong index.tsx & bấm Lưu (Cmd + S)
+    Metro->>Metro: Watchman phát hiện file đổi → Metro tạo một "bản vá" (HMR update)
+    Metro->>Hermes: Bắn bản vá JS sang Hermes trên máy ảo
+    Hermes->>Fabric: Cập nhật lại Virtual DOM
+    Fabric->>Android: Sửa trực tiếp thuộc tính của TextView (ví dụ: đổi text)
+    Android->>Emu: Màn hình cập nhật ngay lập tức (< 1s) mà không cần reload cả app!
+    end
 ```
 
-### Giải thích từng bước:
+### Giải thích chi tiết từng giai đoạn:
 
-| Bước | Điều gì xảy ra | Thời gian |
-|:---|:---|:---:|
-| 1. `npx expo start` | Khởi chạy Metro Bundler — dev server tại `localhost:8081` | ~2-3s |
-| 2. Nhấn `a` | Expo build app và cài lên Android Emulator | ~10-30s (lần đầu) |
-| 3. Request bundle | Emulator request JS bundle từ Metro | ~1s |
-| 4. Metro bundling | Metro scan, transform, bundle tất cả code thành 1 file | ~3-10s |
-| 5. Load vào Hermes | Hermes engine compile bytecode và chạy | ~1-2s |
-| 6. Expo Router | Tìm `src/app/_layout.tsx` → load layout + screens | ~0.5s |
-| 7. Render | React tạo Virtual DOM → Fabric tạo Native Views | ~0.5s |
-| 8. **Hot Reload** | Khi sửa code → chỉ gửi phần thay đổi → cập nhật tức thì | **< 1s** |
+| Giai đoạn | Diễn ra ở đâu? | Chi tiết hành động |
+|:---|:---:|:---|
+| **1. Bundling** | 💻 Máy tính (Host) | **Metro Bundler** đọc toàn bộ thư mục `src/`, thư viện `node_modules`, chuyển TypeScript/JSX thành **1 file JavaScript duy nhất** (`bundle.js`) và phục vụ qua cổng `8081`. |
+| **2. Thực thi JS** | 📱 Máy ảo (Emulator) | File `bundle.js` được tải vào máy ảo, nạp vào **Hermes Engine**. Hermes chạy code React, khởi động Expo Router, đọc `_layout.tsx` và `index.tsx`, tạo ra cây **React Virtual DOM**. |
+| **3. Dịch sang Native** | 📱 Máy ảo (Emulator) | **JSI & Fabric (C++)** nhận cây Virtual DOM, dùng **Yoga** tính tọa độ pixel, rồi ra lệnh cho **Android OS** tạo ra các View gốc thật sự (`FrameLayout`, `TextView`). GPU vẽ lên màn hình. |
+| **4. Hot Reload (HMR)** | 💻 $\rightarrow$ 📱 Cả hai | Khi bạn sửa code, **Watchman** báo cho Metro -> Metro chỉ đóng gói đúng phần thay đổi -> Bắn sang Hermes -> Cập nhật trực tiếp UI trong tích tắc! |
 
 ---
 
