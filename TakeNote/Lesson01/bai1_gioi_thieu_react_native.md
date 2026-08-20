@@ -182,6 +182,44 @@ graph TD
 > // Dùng luôn!
 > ```
 
+### 3.3 Bản chất App "Expo Go" trên máy ảo & Phân biệt Dev vs Production
+
+#### ❓ Có phải dự án React Native luôn luôn phải chạy thông qua app Expo Go?
+👉 **KHÔNG PHẢI!** Dự án của bạn khi xuất bản cho người dùng sẽ là một **App độc lập hoàn toàn (.apk / .aab)** có Icon riêng và Tên riêng. Expo Go chỉ là "chiếc vỏ tiện lợi" trong lúc lập trình (Development).
+
+#### 🔍 Bên trong app Expo Go trên Emulator thực chất chứa những gì?
+File cài đặt của **Expo Go** trên Android đã được biên dịch sẵn toàn bộ các thành phần Native:
+1. **`libhermes.so`**: Bộ máy Hermes JS Engine.
+2. **`libjsi.so` & `libfabric.so`**: Cầu nối JSI & Fabric Renderer (C++).
+3. **`libyoga.so`**: Thư viện tính toán Flexbox layout.
+4. **Android Native Modules**: Code Kotlin/Java điều khiển Camera, GPS, Lưu trữ, View...
+
+```mermaid
+graph TD
+    subgraph "1. Lúc lập trình (Development Mode - Dùng Expo Go)"
+        A1["Code của bạn<br/>(File bundle.js)"] -->|"Nạp nhanh qua Port 8081"| B1["App Expo Go trên máy ảo<br/>(Đã chứa sẵn: Hermes + JSI + Fabric + Native SDK)"]
+        B1 -->|"Hiển thị ngay trong 1s"| C1["📱 Màn hình máy ảo"]
+    end
+
+    subgraph "2. Lúc xuất xưởng (Production Mode - Standalone APK)"
+        A2["Code của bạn<br/>(File bundle.js)"] + B2["Hermes + JSI + Fabric + Native SDK"] -->|"Build đóng gói (EAS Build / Gradle)"| C2["📦 File AppCuaBan.apk độc lập<br/>(Icon riêng, Tên riêng)"]
+        C2 -->|"Cài đặt trực tiếp từ CH Play"| D2["📱 Máy người dùng (Không cần Expo Go)"]
+    end
+
+    style B1 fill:#f39c12,color:#fff
+    style C2 fill:#27ae60,color:#fff
+```
+
+#### ⚖️ Bảng so sánh Development (Expo Go) vs Production (Standalone App):
+
+| Tiêu chí | Chế độ Phát triển (Expo Go) | Chế độ Xuất bản (Standalone App) |
+|:---|:---|:---|
+| **Mục đích** | Viết code, học tập, kiểm tra nhanh | Đưa lên Google Play / App Store |
+| **Cách mở app** | Mở qua app Expo Go $\rightarrow$ load code qua ADB/Wifi | Bấm trực tiếp vào Icon app trên màn hình chính |
+| **Tốc độ thấy kết quả** | ⚡ Tức thì (< 1 giây nhờ Hot Reload) | Phải build lại APK nếu sửa code Native |
+| **Phụ thuộc Expo Go** | ✅ Cần Expo Go để chạy thử | ❌ **100% độc lập, không cần Expo Go** |
+| **Hermes & Fabric nằm ở đâu?** | Được đóng gói sẵn trong **App Expo Go** | Được đóng gói thẳng vào **File `.apk` của bạn** |
+
 ---
 
 ## Phần 4: Phân Tích Cấu Trúc Dự Án Thực Tế
