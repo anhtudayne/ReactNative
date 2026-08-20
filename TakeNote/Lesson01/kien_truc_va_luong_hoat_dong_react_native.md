@@ -127,7 +127,7 @@ graph LR
 
 Trên máy tính, trình duyệt Chrome có engine **V8** để chạy JavaScript.  
 Trên điện thoại, nếu dùng V8 thì app sẽ rất nặng, ngốn nhiều RAM và mở app rất lâu.
-
+**Hermes Engine nằm bên trong máy ảo (trong app Expo Go / runtime Android). Nó nhận file bundle.js duy nhất đó, chạy code React để tạo cây Virtual DOM**
 👉 **Hermes** là một **JavaScript Engine mã nguồn mở do Meta tạo ra**, được thiết kế **dành riêng cho việc chạy React Native trên Android & iOS**.
 
 ```mermaid
