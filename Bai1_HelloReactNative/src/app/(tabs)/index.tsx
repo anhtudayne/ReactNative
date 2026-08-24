@@ -86,6 +86,32 @@ export default function HomeScreen() {
               📝 Bài 2: Bài tập thực hành
             </ThemedText>
           </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.lessonButton,
+              { backgroundColor: "#16a085" },
+              pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] },
+            ]}
+            onPress={() => router.push("/bai3-flexbox" as any)}
+          >
+            <ThemedText style={styles.lessonButtonText}>
+              📖 Bài 3: Flexbox Playground
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.lessonButton,
+              { backgroundColor: "#138d75" },
+              pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] },
+            ]}
+            onPress={() => router.push("/bai3-practice" as any)}
+          >
+            <ThemedText style={styles.lessonButtonText}>
+              📝 Bài 3: Bài tập Layout
+            </ThemedText>
+          </Pressable>
         </ThemedView>
 
         {Platform.OS === "web" && <WebBadge />}

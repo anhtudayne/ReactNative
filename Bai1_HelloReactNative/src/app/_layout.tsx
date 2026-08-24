@@ -25,6 +25,16 @@ export default function RootLayout() {
           name="bai2-practice"
           options={{ title: '📝 Bài 2: Bài tập' }}
         />
+
+        {/* Màn hình bài 3 */}
+        <Stack.Screen
+          name="bai3-flexbox"
+          options={{ title: '📖 Bài 3: Flexbox Playground' }}
+        />
+        <Stack.Screen
+          name="bai3-practice"
+          options={{ title: '📝 Bài 3: Bài tập' }}
+        />
       </Stack>
     </ThemeProvider>
   );
