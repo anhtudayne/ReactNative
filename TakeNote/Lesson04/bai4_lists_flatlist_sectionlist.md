@@ -135,6 +135,61 @@ sequenceDiagram
 
 ---
 
+### 3.3 Chi Tiết Cơ Chế Ảo Hoá & Bộ 3 Props Tối Ưu (`initialNumToRender`, `maxToRenderPerBatch`, `windowSize`)
+
+> [!IMPORTANT]
+> **Khái niệm cốt lõi:** Phân biệt rõ **Dữ liệu trong mảng JS (`data`)** và **Giao diện thực sự được vẽ & lưu trong RAM (UI/Memory Render)**. Dữ liệu có thể có 10.000 phần tử, nhưng RAM chỉ vẽ và giữ lại một số lượng nhỏ.
+
+#### 1️⃣ `initialNumToRender={10}` — Ban đầu vẽ bao nhiêu phần tử?
+* Khi màn hình vừa mở lên, dù mảng `data` có chứa 1.000 phần tử, `FlatList` sẽ **chỉ vẽ đúng 10 phần tử đầu tiên** lên giao diện.
+* **Mục đích:** Giúp màn hình xuất hiện ngay lập tức (dưới 16ms), không bị đơ giật vì không phải render cùng lúc 1.000 cái thẻ.
+
+#### 2️⃣ `maxToRenderPerBatch={5}` — Vẽ thêm bao nhiêu và cộng vào hay thay thế?
+* Khi bạn cuộn màn hình, `FlatList` sẽ vẽ tiếp các phần tử mới theo từng đợt (**batch**), mỗi đợt **tối đa 5 phần tử**.
+* Các phần tử mới sẽ được **vẽ tiếp nối (cộng dồn) vào bên dưới** theo đúng thứ tự danh sách, **KHÔNG PHẢI thay thế**.
+* **Tại sao không render hết một lần mà phải chia đợt (Batch)?**  
+  Nếu bạn lướt thật nhanh, thay vì bắt chip xử lý render một lúc 50 items làm drop fps (giật/lag), `FlatList` sẽ render từ từ 5 items mỗi frame để giữ cho hiệu ứng cuộn luôn đạt **60fps - 120fps mượt mà**.
+
+#### 3️⃣ `windowSize={5}` — ⚠️ Điểm hay bị hiểu lầm nhất!
+* ❌ **KHÔNG PHẢI là giữ 5 phần tử trong memory!**  
+* ✅ **1 "Window" = 1 Chiều cao màn hình (Viewport Height).**
+
+`windowSize={5}` nghĩa là `FlatList` sẽ giữ trong bộ nhớ một vùng không gian tương đương **5 lần chiều cao màn hình**, phân bổ như sau:
+
+```
+┌──────────────────────────────────────────────┐
+│  🔼 2 màn hình PHÍA TRÊN (Đã cuộn qua)        │ ──┐
+│     (Vẫn giữ trong RAM để khi cuộn ngược     │   │
+│      lên trên không bị trắng màn hình)       │   │
+├──────────────────────────────────────────────┤   │
+│  📱 1 màn hình CHÍNH GIỮA (Đang nhìn thấy)   │   ├── Tổng cộng = 5 CỬA SỔ
+├──────────────────────────────────────────────┤   │   (5 chiều cao màn hình)
+│  🔽 2 màn hình PHÍA DƯỚI (Sắp cuộn tới)       │   │
+│     (Render sẵn để khi lướt xuống là có ngay)│   │
+└──────────────────────────────────────────────┘ ──┘
+         ▲                                ▲
+         │                                │
+  Items nằm NGOÀI vùng này         Items nằm NGOÀI vùng này
+  sẽ bị GỠ BỎ (Unmount)            sẽ CHƯA ĐƯỢC RENDER
+  khỏi bộ nhớ RAM!                 để tiết kiệm RAM!
+```
+
+* **Cơ chế hoạt động:**
+  * Giả sử 1 màn hình chứa được 5 items $\rightarrow$ `windowSize={5}` sẽ giữ khoảng **$5 \times 5 = 25$ items** trong bộ nhớ xung quanh vị trí đang xem.
+  * **Những items cuộn đi quá xa (cách hơn 2 màn hình về phía trên hoặc phía dưới):** `FlatList` sẽ **tự động gỡ bỏ (unmount)** giao diện của chúng ra khỏi RAM và thay bằng một khoảng trống rỗng.
+  * Nhờ vậy, dù danh sách có **10.000 phần tử**, bộ nhớ RAM của điện thoại vẫn chỉ tốn dung lượng cho khoảng 25 items!
+
+#### 📊 Bảng tổng kết vòng đời hiển thị của 1 phần tử trong FlatList
+
+| Thuộc tính | Ý nghĩa thực tế |
+|:---|:---|
+| **`initialNumToRender={10}`** | Vừa vào app $\rightarrow$ Vẽ nhanh 10 items đầu tiên để người dùng thấy ngay. |
+| **`maxToRenderPerBatch={5}`** | Khi cuộn $\rightarrow$ Cứ mỗi nhịp xử lý, vẽ tiếp tối đa 5 items để không bị giật lag. |
+| **`windowSize={5}`** | Chỉ giữ lại các items nằm trong phạm vi **2 màn hình trước + 1 màn hình hiện tại + 2 màn hình sau**. Items nằm xa hơn sẽ bị giải phóng bộ nhớ. |
+| **`windowSize mặc định`** | Giá trị mặc định của React Native là `21` (10 trên + 1 giữa + 10 dưới). Ta chỉnh xuống `5` giúp **tiết kiệm RAM gấp 4 lần**! |
+
+---
+
 ## Phần 4: SectionList — Danh Sách Phân Nhóm
 
 ### 4.1 Khi nào dùng SectionList?
