@@ -112,6 +112,19 @@ export default function HomeScreen() {
               📝 Bài 3: Bài tập Layout
             </ThemedText>
           </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.lessonButton,
+              { backgroundColor: "#2980b9" },
+              pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] },
+            ]}
+            onPress={() => router.push("/bai4-lists" as any)}
+          >
+            <ThemedText style={styles.lessonButtonText}>
+              📘 Bài 4: FlatList & SectionList
+            </ThemedText>
+          </Pressable>
         </ThemedView>
 
         {Platform.OS === "web" && <WebBadge />}
