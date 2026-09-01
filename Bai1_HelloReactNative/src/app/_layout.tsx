@@ -41,6 +41,22 @@ export default function RootLayout() {
           name="bai4-lists"
           options={{ title: '📘 Bài 4: Lists' }}
         />
+
+        {/* Màn hình bài 5 */}
+        <Stack.Screen
+          name="bai5-navigation"
+          options={{ title: '📘 Bài 5: Navigation' }}
+        />
+        <Stack.Screen
+          name="bai5-product-detail"
+          options={{ title: '📋 Chi tiết sản phẩm' }}
+        />
+
+        {/* Màn hình bài 6 */}
+        <Stack.Screen
+          name="bai6-tabs"
+          options={{ title: '📘 Bài 6: Tab Navigation' }}
+        />
       </Stack>
     </ThemeProvider>
   );

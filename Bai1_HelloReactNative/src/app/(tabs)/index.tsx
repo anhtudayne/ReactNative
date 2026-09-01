@@ -125,6 +125,32 @@ export default function HomeScreen() {
               📘 Bài 4: FlatList & SectionList
             </ThemedText>
           </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.lessonButton,
+              { backgroundColor: "#8e44ad" },
+              pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] },
+            ]}
+            onPress={() => router.push("/bai5-navigation" as any)}
+          >
+            <ThemedText style={styles.lessonButtonText}>
+              📘 Bài 5: Navigation (Điều hướng)
+            </ThemedText>
+          </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.lessonButton,
+              { backgroundColor: "#d35400" },
+              pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] },
+            ]}
+            onPress={() => router.push("/bai6-tabs" as any)}
+          >
+            <ThemedText style={styles.lessonButtonText}>
+              📘 Bài 6: Tab & Nested Navigation
+            </ThemedText>
+          </Pressable>
         </ThemedView>
 
         {Platform.OS === "web" && <WebBadge />}
