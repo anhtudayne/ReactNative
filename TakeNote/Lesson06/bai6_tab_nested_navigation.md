@@ -12,7 +12,7 @@ Sau bài này, bạn sẽ:
 - [ ] Phân biệt 3 cách tạo Tab: **NativeTabs**, **Tabs** (Expo Router), **Custom Tab Bar**
 - [ ] Hiểu **Nested Navigation** (Tab lồng trong Stack, Stack lồng trong Tab)
 - [ ] Biết cách hiển thị **Badge thông báo** trên tab icon
-- [ ] Nắm 2 Hook mới: **`usePathname`**, **`useSegments`**
+- [ ] Nắm 3 Hook mới: **`useFocusEffect`**, **`usePathname`**, **`useSegments`**
 - [ ] Nắm 1 Pattern mới: **Conditional Rendering by Tab State**
 
 ---
@@ -375,7 +375,89 @@ Vì mỗi Tab quản lý một Navigation Stack độc lập, nên trạng thái
 
 ---
 
-### 4.3 Cấu trúc thư mục trong Expo Router để tạo Stack trong Tab:
+### 4.3 Vòng Đời Tab & Quản Lý Bộ Nhớ: "Ẩn Đi" Chứ Không "Huỷ Diệt"
+
+> ❓ **Câu hỏi hay gặp:** *"Khi chuyển sang tab mới thì Stack và Component của tab cũ có bị huỷ (Unmount) không?"*
+> 
+> 👉 **Câu trả lời:** **Mặc định là KHÔNG!** Chúng vẫn sống trong bộ nhớ RAM, chỉ bị **ẨN ĐI** mà thôi.
+
+#### 1️⃣ Cơ chế hoạt động: "Ẩn đi" chứ không "Huỷ diệt"
+* Trong React Web thông thường:
+  ```tsx
+  {activeTab === 'home' && <HomeTab />}
+  {activeTab === 'notif' && <NotifTab />}
+  ```
+  👉 Khi đổi sang `'notif'`, `<HomeTab />` sẽ bị **Unmount (huỷ hoàn toàn)**, toàn bộ state bên trong bị xóa sạch.
+
+* **Trong Expo Router `<Tabs>` (và React Navigation), cơ chế lại hoàn toàn khác:**
+  * Nó **giữ nguyên toàn bộ cây Component và Stack của tab cũ trong bộ nhớ RAM**.
+  * Ở tầng giao diện, nó chỉ đơn giản là **ẩn đi** (ở tầng Native sử dụng thư viện `react-native-screens` để đóng băng màn hình, tương tự như `display: 'none'`).
+  * Nhờ vậy:
+    * Vị trí cuộn dở (Scroll position) vẫn giữ nguyên.
+    * Chữ bạn đang gõ dở trong ô tìm kiếm không bị mất.
+    * Chiếc Stack đang lồng 3-4 lớp vẫn nằm nguyên vẹn chờ bạn quay lại!
+
+#### 2️⃣ Ưu điểm & Đánh đổi của cơ chế này
+
+| Điểm mạnh (UX cực đỉnh) | Sự đánh đổi (Performance) |
+|:---|:---|
+| ⚡ **Chuyển tab tức thì (0ms):** Không cần render lại từ đầu. | 💾 **Tốn RAM hơn:** Vì phải giữ trạng thái của nhiều màn hình cùng lúc trong bộ nhớ. |
+| 🔄 **Trải nghiệm liền mạch:** Người dùng quay lại tab cũ thấy mọi thứ y nguyên như lúc vừa rời đi. | ⚠️ **Cần quản lý rò rỉ bộ nhớ:** Nếu tab chứa animation nặng hoặc video phát ngầm thì cần xử lý tạm dừng khi rời tab. |
+
+#### 3️⃣ Nếu muốn Tab tự huỷ component khi rời đi thì làm sao?
+Nếu có một Tab (ví dụ: Tab "Quét mã QR" hoặc Tab "Camera") mà bạn **muốn khi người dùng chuyển sang tab khác thì phải tắt camera / huỷ ngay để tiết kiệm pin và RAM**, Expo Router cung cấp sẵn thuộc tính **`unmountOnBlur`**:
+
+```tsx
+<Tabs.Screen
+  name="camera"
+  options={{
+    title: 'Máy ảnh',
+    // ⭐ Khi rời khỏi tab này, lập tức HUỶ HOÀN TOÀN component:
+    unmountOnBlur: true, 
+  }}
+/>
+```
+* `unmountOnBlur: false` *(Mặc định)* $\rightarrow$ Giữ nguyên trong RAM, không huỷ.
+* `unmountOnBlur: true` $\rightarrow$ Huỷ component khi rời tab, khi bấm vào lại thì tạo mới từ đầu.
+
+#### 4️⃣ 🆕 Hook thực chiến cần biết: `useFocusEffect`
+Chính vì component **không bị huỷ**, nên một cái "bẫy" mà lập trình viên rất hay gặp là:
+
+> ⚠️ `useEffect(() => { ... }, [])` **chỉ chạy đúng 1 LẦN DUY NHẤT** khi bạn mở tab lần đầu tiên! Khi bạn chuyển sang tab khác rồi quay lại, `useEffect` **SẼ KHÔNG CHẠY LẠI** (vì component chưa từng bị unmount).
+
+Vậy làm sao để biết **mỗi khi người dùng quay trở lại Tab** để tải dữ liệu mới (ví dụ làm mới danh sách thông báo)?
+
+👉 Ta dùng Hook chuyên dụng của Navigation: **`useFocusEffect`**
+
+```tsx
+import { useCallback } from 'react';
+import { useFocusEffect } from 'expo-router';
+
+export default function NotificationsTab() {
+  // ⭐ Hàm này sẽ chạy MỖI KHI người dùng bấm chuyển vào tab này!
+  useFocusEffect(
+    useCallback(() => {
+      console.log('Tab Thông báo đang được hiển thị! Tải dữ liệu mới...');
+      fetchLatestNotifications();
+
+      return () => {
+        console.log('Người dùng vừa chuyển sang tab khác!');
+      };
+    }, [])
+  );
+
+  return <View>...</View>;
+}
+```
+
+> 💡 **Quy tắc vàng:**
+> 1. Tab Navigation ưu tiên **giữ trạng thái trong RAM** để chuyển tab nhanh như chớp và giữ nguyên luồng làm việc của người dùng.
+> 2. Muốn dọn dẹp giải phóng tài nguyên khi rời tab $\rightarrow$ dùng `unmountOnBlur: true`.
+> 3. Muốn làm mới dữ liệu mỗi khi người dùng quay lại tab $\rightarrow$ dùng hook `useFocusEffect`.
+
+---
+
+### 4.4 Cấu trúc thư mục trong Expo Router để tạo Stack trong Tab:
 
 Để xây dựng một Stack nằm trọn bên trong một Tab, ta lồng group thư mục `(home)/` có `_layout.tsx` riêng bên trong `(tabs)/`:
 
@@ -396,7 +478,7 @@ src/app/
 
 ---
 
-### 4.4 Mở rộng: 2 Pattern điều hướng kinh điển trên Mobile
+### 4.5 Mở rộng: 2 Pattern điều hướng kinh điển trên Mobile
 
 Trong thực tế xây dựng ứng dụng, các lập trình viên thường chọn 1 trong 2 trường phái thiết kế:
 
