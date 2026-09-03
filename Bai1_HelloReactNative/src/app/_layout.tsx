@@ -65,6 +65,12 @@ export default function RootLayout() {
           name="bai7-state"
           options={{ title: '📘 Bài 7: State Management' }}
         />
+
+        {/* Màn hình bài 8 — Zustand (không cần Provider!) */}
+        <Stack.Screen
+          name="bai8-zustand"
+          options={{ title: '📘 Bài 8: Zustand' }}
+        />
       </Stack>
     </ThemeProvider>
     </CartProvider>

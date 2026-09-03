@@ -164,6 +164,19 @@ export default function HomeScreen() {
               📘 Bài 7: State Management
             </ThemedText>
           </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.lessonButton,
+              { backgroundColor: "#16a085" },
+              pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] },
+            ]}
+            onPress={() => router.push("/bai8-zustand" as any)}
+          >
+            <ThemedText style={styles.lessonButtonText}>
+              📘 Bài 8: Zustand
+            </ThemedText>
+          </Pressable>
         </ThemedView>
 
         {Platform.OS === "web" && <WebBadge />}
