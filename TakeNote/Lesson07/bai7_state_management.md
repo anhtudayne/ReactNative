@@ -937,6 +937,90 @@ dispatch(action)
 
 ---
 
+### ❓ Câu 6: Khi 1 component dispatch → TẤT CẢ component dùng Context đều re-render?
+
+**ĐÚNG!** Đây là cơ chế mặc định của Context API.
+
+**Mục đích kết hợp Context + useReducer:**
+```
+Context  → Giải quyết vấn đề "Ở ĐÂU cũng dùng được" (không prop drilling)
+Reducer  → Giải quyết vấn đề "Cập nhật NHIỀU biến liên quan an toàn"
+```
+
+**Hình dung kiến trúc:**
+
+```
+┌───────────────────────────────────────────────────┐
+│ CartProvider  (giữ state + dispatch qua Context)  │
+│                                                   │
+│   state = { items: ['iPhone'], totalItems: 1 }    │
+│                                                   │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────┐│
+│  │ ProductCard  │  │  CartBadge   │  │ Checkout ││
+│  │ useCart()    │  │  useCart()   │  │ useCart() ││
+│  │             │  │              │  │          ││
+│  │ gọi:       │  │ đọc:        │  │ đọc:     ││
+│  │ addItem()  │  │ totalItems  │  │ totalPrice││
+│  └──────────────┘  └──────────────┘  └──────────┘│
+└───────────────────────────────────────────────────┘
+```
+
+**Khi ProductCard gọi `addItem('AirPods')`:**
+
+```
+Bước 1: ProductCard gọi → dispatch({ type: 'ADD_ITEM', payload: 'AirPods' })
+
+Bước 2: Reducer tính toán → state mới = { items: ['iPhone', 'AirPods'], totalItems: 2 }
+
+Bước 3: CartProvider nhận state mới → truyền vào <Context.Provider value={...}>
+
+Bước 4: React phát hiện value thay đổi → THÔNG BÁO cho TẤT CẢ consumer:
+         ✅ ProductCard  → RE-RENDER (vì dùng useCart())
+         ✅ CartBadge    → RE-RENDER (vì dùng useCart()) → badge hiện "2"
+         ✅ Checkout     → RE-RENDER (vì dùng useCart()) → tổng tiền cập nhật
+         ❌ Component KHÔNG dùng useCart() → KHÔNG re-render
+```
+
+**✅ Ưu điểm:** Tất cả UI đồng bộ tự động — badge, tổng tiền, danh sách giỏ hàng đều cập nhật cùng lúc.
+
+**⚠️ Nhược điểm (với app lớn):**
+```tsx
+// Component này CHỈ cần totalItems để hiện badge
+function CartBadge() {
+  const { state } = useCart();  // Lấy TOÀN BỘ context
+  return <Text>{state.totalItems}</Text>;
+}
+
+// Khi bất kỳ field nào trong context thay đổi
+// (kể cả thay đổi field mà CartBadge KHÔNG dùng)
+// → CartBadge vẫn bị RE-RENDER → Lãng phí!
+```
+
+**💡 Giải pháp cho app lớn:**
+
+| Giải pháp | Mô tả |
+|:---|:---|
+| **Tách Context nhỏ** | Mỗi Context chỉ chứa data liên quan. VD: `CartContext` riêng, `ThemeContext` riêng |
+| **`React.memo`** | Bọc component con để chỉ re-render khi props thực sự thay đổi |
+| **Dùng Zustand** (Bài 8) | Cho phép component **chỉ subscribe 1 field** → chỉ re-render khi field đó đổi |
+
+```tsx
+// ✅ Zustand (Bài 8) - Giải quyết triệt để:
+function CartBadge() {
+  // Chỉ subscribe field totalItems — KHÔNG subscribe cả store!
+  const totalItems = useCartStore(state => state.totalItems);
+  // → Khi totalPrice thay đổi mà totalItems không đổi → KHÔNG re-render!
+  return <Text>{totalItems}</Text>;
+}
+```
+
+> [!TIP]
+> **Quy tắc thực tế:**
+> - **App nhỏ-trung bình** (< 20 màn hình): Context API + useReducer **đủ dùng**. Việc re-render thừa không đáng lo vì React Native rất nhanh.
+> - **App lớn** (> 20 màn hình, data phức tạp): Nên dùng **Zustand** (sẽ học ở Bài 8) để kiểm soát re-render chính xác hơn.
+
+---
+
 ## Phần 8: Tổng Kết Bài 7
 
 ```mermaid
