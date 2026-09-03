@@ -151,6 +151,19 @@ export default function HomeScreen() {
               📘 Bài 6: Tab & Nested Navigation
             </ThemedText>
           </Pressable>
+
+          <Pressable
+            style={({ pressed }) => [
+              styles.lessonButton,
+              { backgroundColor: "#8e44ad" },
+              pressed && { opacity: 0.7, transform: [{ scale: 0.97 }] },
+            ]}
+            onPress={() => router.push("/bai7-state" as any)}
+          >
+            <ThemedText style={styles.lessonButtonText}>
+              📘 Bài 7: State Management
+            </ThemedText>
+          </Pressable>
         </ThemedView>
 
         {Platform.OS === "web" && <WebBadge />}

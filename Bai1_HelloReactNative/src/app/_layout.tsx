@@ -4,12 +4,14 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
+import { CartProvider } from '@/contexts/CartContext';
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
   return (
+    <CartProvider>
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
       <Stack>
@@ -57,7 +59,14 @@ export default function RootLayout() {
           name="bai6-tabs"
           options={{ title: '📘 Bài 6: Tab Navigation' }}
         />
+
+        {/* Màn hình bài 7 */}
+        <Stack.Screen
+          name="bai7-state"
+          options={{ title: '📘 Bài 7: State Management' }}
+        />
       </Stack>
     </ThemeProvider>
+    </CartProvider>
   );
 }
